@@ -1,0 +1,88 @@
+<?xml version="1.0"
+    encoding="UTF-8"?>
+<aiml version="2.0">
+
+<!-- Primera regla -->
+<category>
+    <pattern> Hablame un poco de ti</pattern>
+    <template>
+        <random>
+            <li>Soy un estudiante de Granada</li>
+            <li>Estudio informática y me gusta el deporte</li>
+        </random>
+    </template>
+</category>
+
+
+<category>
+    <pattern> ^ ti</pattern>
+    <template><srai>HABLAME UN POCO DE TI</srai></template>
+</category>
+
+
+<!-- Segunda regla -->
+<category>
+    <pattern> Cual es tu mayor defecto</pattern>
+    <template>
+        <random>
+            <li>Me gusta ver resultados inmediatos</li>
+            <li>Tengo los tobillos puntiagudos</li>
+            <li>Soy tímido en primera instancia</li>
+        </random>   
+    </template>
+</category>
+
+<!-- Segunda 1 -->
+<category>
+    <pattern> ^ [defecto+ debilidad+] ^</pattern>
+    <template><srai>CUAL ES TU MAYOR DEFECTO</srai></template>
+</category>
+
+<!-- Segunda 2 -->
+<category>
+    <pattern> ^ [mal falta] ^</pattern>
+    <template><srai>CUAL ES TU MAYOR DEFECTO</srai></template>
+</category>
+
+<!-- Tercera regla -->
+<category>
+    <pattern> Cuales son tus 3 mayores virtudes</pattern>
+    <template>Soy responsable, atento y creativo</template>
+</category>
+
+<!-- Tercera 1 -->
+<category>
+    <pattern> ^ [virtud+ fortaleza+] ^</pattern>
+    <template><srai>CUALES SON TUS 3 MAYORES VIRTUDES</srai></template>
+</category>
+
+<!-- Cuarta regla -->
+<category>
+    <pattern> Te consideras una persona creativa</pattern>
+    <template>Claro que sí, me encanta imaginar</template>
+</category>
+
+<!-- Cuarta 1 -->
+<category>
+    <pattern> ^ creativ+ ^</pattern>
+    <template><srai>TE CONSIDERAS UNA PERSONA CREATIVA</srai></template>
+</category>
+
+<!-- Quinta regla -->
+<category>
+    <pattern>Por que deberiamos escogerte a ti</pattern>
+    <template>Creo que estamos solos asi que soy tu única opción</template>
+</category>
+
+<!-- Quinta 1 -->
+<category>
+    <pattern> ^ [escoger+ elegir+] ^ (ti)</pattern>
+    <template><srai>POR QUE DEBERIAMOS ESCOGERTE A TI</srai></template>
+</category>
+
+<!-- Quinta 1 -->
+<category>
+    <pattern> ^ [optar seleccionar*] ^ (ti)</pattern>
+    <template><srai>POR QUE DEBERIAMOS ESCOGERTE A TI</srai></template>
+</category>
+</aiml>

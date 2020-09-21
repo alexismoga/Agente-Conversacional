@@ -1,0 +1,350 @@
+<?xml version="1.0"
+    encoding="UTF-8"?>
+<aiml version="2.0">
+
+<!--En este fichero se establecen las reglas necesarias para que el bot
+y el usuario establezcan una conversación que le permita al usuario
+especificar una fecha de la forma:
+        - Una cita para pasado mañana
+        - Para el próximo lunes por la tarde
+        - Mañana por la mañana
+        - Etc
+-->
+<!--REGLA 0: A LAS 10:00-->
+<category>
+    <pattern>a las *</pattern>
+    <template>
+        <think>
+        <set var="existe"><srai>FINDITEM <star/> IN <get name="lista_libres"/></srai></set>
+        </think>
+        <condition var="existe">
+            <li value="0">Esa hora no está libre. Prueba con otro dia</li>
+            <li>
+                <srai>MARK ocupado AT <star/> ON <get name="fecha_pedida"/></srai>
+                Perfecto, cita reservada para el <get name="fecha_pedida"/> a las <star/>
+            </li>
+        </condition>
+    </template>
+</category>
+<!--*******************************************************************************-->
+<!--REGLA 1: Cita para hoy-->
+<category>
+    <pattern>para hoy</pattern>
+    <template>
+        <think>
+            <set var="fecha"><srai>DATE</srai></set>
+            <set var="dia"><srai>TOP <get var="fecha"/> </srai></set>
+            <set var="mes"><srai>REMAIN <get var="fecha"/> </srai></set>
+        </think>
+        <srai>CITA PARA EL <get var="dia"/> DE <get var="mes"/></srai>
+    </template>
+</category>
+
+<!--REGLA 2.1: Flexibilidad cita para mañana-->
+<category>
+    <pattern>* para hoy</pattern>
+    <template>
+        <srai>PARA HOY</srai>
+    </template>
+</category>
+
+<!--REGLA 2.1: Cita para hoy a las 10:00-->
+<category>
+    <pattern>* para hoy a las *</pattern>
+    <template>
+        <think><srai>PARA HOY</srai></think>
+        <srai>A LAS <star index="2"/></srai>
+    </template>
+</category>
+
+<!--REGLA 2: Cita para mañana-->
+<category>
+    <pattern>para mañana</pattern>
+    <template>
+        <think>
+            <set var="fecha"><srai>DATE TOMORROW</srai></set>
+            <set var="dia"><srai>TOP <get var="fecha"/> </srai></set>
+            <set var="mes"><srai>REMAIN <get var="fecha"/> </srai></set>
+        <condition var="dia">
+                    <li value="1"><set var="dia">01</set></li>
+                    <li value="2"><set var="dia">02</set></li>
+                    <li value="3"><set var="dia">03</set></li>
+                    <li value="4"><set var="dia">04</set></li>
+                    <li value="5"><set var="dia">05</set></li>
+                    <li value="6"><set var="dia">06</set></li>
+                    <li value="7"><set var="dia">07</set></li>
+                    <li value="8"><set var="dia">08</set></li>
+                    <li value="9"><set var="dia">09</set></li>
+        </condition>
+        </think>
+        <srai>CITA PARA EL <get var="dia"/> DE <get var="mes"/></srai>
+    </template>
+</category>
+
+<!--REGLA 2.1: Flexibilidad cita para mañana-->
+<category>
+    <pattern>* para mañana</pattern>
+    <template>
+        <srai>PARA MAÑANA</srai>
+    </template>
+</category>
+
+<!--REGLA 2.1: Cita para mañana a las 10:00-->
+<category>
+    <pattern>* para mañana a las *</pattern>
+    <template>
+        <think><srai>PARA MAÑANA</srai></think>
+        <srai>A LAS <star index="2"/></srai>
+    </template>
+</category>
+
+<!--REGLA 3: Cita para pasado mañana-->
+<category>
+    <pattern>pasado mañana</pattern>
+    <template>
+        <think>
+            <set var="fecha"><srai>DAYAFTERTOMORROWDATE</srai></set>
+            <set var="dia"><srai>TOP <get var="fecha"/> </srai></set>
+            <set var="mes"><srai>REMAIN <get var="fecha"/> </srai></set>
+            <condition var="dia">
+                    <li value="1"><set var="dia">01</set></li>
+                    <li value="2"><set var="dia">02</set></li>
+                    <li value="3"><set var="dia">03</set></li>
+                    <li value="4"><set var="dia">04</set></li>
+                    <li value="5"><set var="dia">05</set></li>
+                    <li value="6"><set var="dia">06</set></li>
+                    <li value="7"><set var="dia">07</set></li>
+                    <li value="8"><set var="dia">08</set></li>
+                    <li value="9"><set var="dia">09</set></li>
+        </condition>
+        </think>
+        <srai>CITA PARA EL <get var="dia"/> DE <get var="mes"/></srai>
+    </template>
+</category>
+
+<!--REGLA 3.2: Flexibilidad cita pasado mañana-->
+<category>
+    <pattern>* pasado mañana</pattern>
+    <template>
+        <srai>PASADO MAÑANA</srai>
+    </template>
+</category>
+
+<!--REGLA 2.1: Cita para mañana a las 10:00-->
+<category>
+    <pattern>* para pasado mañana a las *</pattern>
+    <template>
+        <think><srai>PASADO MAÑANA</srai></think>
+        <srai>A LAS <star index="2"/></srai>
+    </template>
+</category>
+
+<!--REGLA 4: Cita para proximo <dia semana>
+
+Si el día solicitado es el mismo que el día actual,
+se devuelve el día de la semana siguiente.
+Por ejemplo: si hoy es martes y el usuario dice
+    -Quiero cita para el próximo martes
+Entonces le indicamos las citas libres del martes de la semana siguiente
+Sin embargo, si es martes y le decimos que queremos cita para el 
+próximo miercoles, le indica las citas del miercoles de la semana actual-->
+<category>
+    <pattern>proximo *</pattern>
+    <template>
+        <think>
+            <set var="dia_actual"><srai>DAY</srai></set>
+            <set var="iguales"><srai>COMPARE <get var="dia_actual"/> WITH <star index="2"/></srai></set>
+            <condition var="iguales">
+                <li value="YES">
+                    <set var="fecha"><srai> DATE IN 7 DAYS </srai></set>
+                </li>
+                <li>
+                    <set var="fecha"><srai>DATE ON <star index="1"/></srai></set>
+                </li>
+            </condition>
+            <condition var="dia">
+                    <li value="1"><set var="dia">01</set></li>
+                    <li value="2"><set var="dia">02</set></li>
+                    <li value="3"><set var="dia">03</set></li>
+                    <li value="4"><set var="dia">04</set></li>
+                    <li value="5"><set var="dia">05</set></li>
+                    <li value="6"><set var="dia">06</set></li>
+                    <li value="7"><set var="dia">07</set></li>
+                    <li value="8"><set var="dia">08</set></li>
+                    <li value="9"><set var="dia">09</set></li>
+        </condition>
+            <set var="dia"><srai>TOP <get var="fecha"/> </srai></set>
+            <set var="mes"><srai>REMAIN <get var="fecha"/> </srai></set>
+        </think>
+        <srai>CITA PARA EL <get var="dia"/> DE <get var="mes"/></srai>
+    </template>
+</category>
+
+<!--REGLA 4.1: Flexibilidad siguiente <dia semana> -->
+<category>
+    <pattern>* (para el) proximo *</pattern>
+    <template>
+        <srai>PROXIMO <star index="2"/></srai>
+    </template>
+</category>
+
+<!--REGLA 4.1: Flexibilidad siguiente <dia semana> -->
+<category>
+    <pattern>* proximo * por la mañana</pattern>
+    <template>
+        <think><srai>PROXIMO <star index="2"/></srai></think>
+        <srai> HORAS LIBRES MAÑANA <get name="fecha_pedida"/></srai>
+    </template>
+</category>
+
+<!--REGLA 4.1: Flexibilidad siguiente <dia semana> -->
+<category>
+    <pattern>* proximo * por la tarde</pattern>
+    <template>
+        <think><srai>PROXIMO <star index="2"/></srai></think>
+        <srai> HORAS LIBRES TARDE <get name="fecha_pedida"/></srai>
+    </template>
+</category>
+
+<!--REGLA 2.1: Cita para el proximo lunes a las 10:00-->
+<category>
+    <pattern>* para el proximo * a las *</pattern>
+    <template>
+        <think><srai>PROXIMO <star index="2"/></srai></think>
+        <srai>A LAS <star index="3"/></srai>
+    </template>
+</category>
+
+<!--REGLA 4.2: Cita para siguiente <dia semana> -->
+<category>
+    <pattern>* siguiente *</pattern>
+    <template>
+        <srai>PROXIMO <star index="2"/></srai>
+    </template>
+</category>
+
+<!--REGLA 4.1: Flexibilidad siguiente <dia semana> -->
+<category>
+    <pattern>* (para el) siguiente *</pattern>
+    <template>
+        <srai>PROXIMO <star index="2"/></srai>
+    </template>
+</category>
+
+<!--REGLA 4.1: Flexibilidad siguiente <dia semana> -->
+<category>
+    <pattern>* (para el) siguiente * por la mañana</pattern>
+    <template>
+        <think><srai>PROXIMO <star index="2"/></srai></think>
+        <srai> HORAS LIBRES MAÑANA <get name="fecha_pedida"/></srai>
+    </template>
+</category>
+
+<!--REGLA 4.1: Flexibilidad siguiente <dia semana> -->
+<category>
+    <pattern>* (para el) siguiente * por la tarde</pattern>
+    <template>
+        <think><srai>PROXIMO <star index="2"/></srai></think>
+        <srai> HORAS LIBRES TARDE <get name="fecha_pedida"/></srai>
+    </template>
+</category>
+
+<!--REGLA 2.1: Cita para el proximo lunes a las 10:00-->
+<category>
+    <pattern>* para el siguiente * a las *</pattern>
+    <template>
+        <think><srai>PROXIMO <star index="2"/></srai></think>
+        <srai>A LAS <star index="3"/></srai>
+    </template>
+</category>
+
+<!--REGLA 4.3: Cita para LUNES | MARTES |.... | VIERNES -->
+<category>
+    <pattern>* para el *</pattern>
+    <template>
+        <srai>PROXIMO <star index="2"/></srai>
+    </template>
+</category>
+
+<!--REGLA 2.1: Cita para el proximo lunes a las 10:00-->
+<category>
+    <pattern>* para el * a las *</pattern>
+    <template>
+        <think><srai>PROXIMO <star index="2"/></srai></think>
+        <srai>A LAS <star index="3"/></srai>
+    </template>
+</category>
+
+<!--REGLA 5: Cita para hoy por la mañana -->
+<category>
+    <pattern>* para hoy por la tarde</pattern>
+    <template>
+        <think><srai>PARA HOY</srai></think>
+        <srai> HORAS LIBRES MAÑANA <get name="fecha_pedida"/></srai>
+    </template>
+</category>
+
+<!--REGLA 6: Cita para hoy por la tarde -->
+<category>
+    <pattern>* para hoy por la tarde</pattern>
+    <template>
+        <think><srai>PARA HOY</srai></think>
+        <srai> HORAS LIBRES TARDE <get name="fecha_pedida"/></srai>
+    </template>
+</category>
+
+<!--REGLA 7: Cita para mañana por la mañana -->
+<category>
+    <pattern>* para mañana por la mañana</pattern>
+    <template>
+        <think><srai>PARA MAÑANA</srai></think>
+        <srai> HORAS LIBRES MAÑANA <get name="fecha_pedida"/></srai>
+    </template>
+</category>
+
+<!--REGLA 8: Cita para mañana por la tarde -->
+<category>
+    <pattern>* para mañana por la tarde</pattern>
+    <template>
+        <think><srai>PARA MAÑANA</srai></think>
+        <srai> HORAS LIBRES TARDE <get name="fecha_pedida"/></srai>
+    </template>
+</category>
+
+<!--REGLA 8: Cita para pasado mañana por la mañana -->
+<category>
+    <pattern>* para pasado mañana por la mañana</pattern>
+    <template>
+        <think><srai>PASADO MAÑANA</srai></think>
+        <srai> HORAS LIBRES MAÑANA <get name="fecha_pedida"/></srai>
+    </template>
+</category>
+
+<!--REGLA 8: Cita para pasado mañana por la tarde -->
+<category>
+    <pattern>* para pasado mañana por la tarde</pattern>
+    <template>
+        <think><srai>PASADO MAÑANA</srai></think>
+        <srai> HORAS LIBRES TARDE <get name="fecha_pedida"/></srai>
+    </template>
+</category>
+
+<!--REGLA 9: Fecha concreta + por la mañana -->
+<category>
+    <pattern>^ para el * de * por la mañana</pattern>
+    <template>
+        <think><srai>CITA PARA EL <star index="2"/> DE <star index="3"/></srai></think>
+        <srai> HORAS LIBRES MAÑANA<get name="fecha_pedida"/></srai>
+    </template>
+</category>
+
+<!--REGLA 10: Fecha concreta + por la mañana -->
+<category>
+    <pattern>^ para el * de * por la tarde</pattern>
+    <template>
+        <think><srai>CITA PARA EL <star index="2"/> DE <star index="3"/></srai></think>
+        <srai> HORAS LIBRES TARDE <get name="fecha_pedida"/></srai>
+    </template>
+</category>
+
+</aiml>

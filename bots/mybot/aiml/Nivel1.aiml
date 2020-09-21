@@ -1,0 +1,240 @@
+<?xml version="1.0"
+    encoding="UTF-8"?>
+<aiml version="2.0">
+
+<!--En este fichero se establecen las reglas para que el bot pueda
+entablar una conversación más o menos flexible para que un usuario 
+solicite una cita para una fecha concreta.-->
+
+<!--REGLA 1: Dia disponible -->
+<category>
+    <pattern>$Cita para el * de * (20)</pattern>
+    <template>
+        Dejame comprobar si el dia esta libre....
+        <think>
+            <set name="fecha_pedida"><!--Pasar fecha de lenguaje natural al formato dd-mm-yy-->
+                <star index="1"/>-<map name="month_index_es"><star index="2"/></map>-20
+            </set>
+            <!--Creamos la sublista de horas libres para iterar-->
+            <set var="sublista">
+                <srai>SUBLIST FROM 9 TO 21 OF <map name="eventos"><get name="fecha_pedida"/></map></srai>
+            </set>
+            <set var="item">
+                <srai>ITERATE <get var="sublista"/></srai>
+            </set>
+        </think>
+        <condition var="item">
+            <li value="null">
+                Si, esta libre.
+                <srai>HORAS LIBRES DE 8 A 21 DEL DIA <get name="fecha_pedida"/></srai>
+                Que hora quiere?
+            </li>
+            <li value="$">
+                esta ocupado, quieres otro dia?
+            </li>
+            <li value="ocupado">
+                <think>
+                    <set var="item"><srai>NEXT</srai></set>
+                </think>
+                <loop/>
+            </li>
+        </condition>
+    </template>
+</category>
+
+<!--REGLA 1.1: flexibilidad cita-->
+<category>
+    <pattern>^ para el (dia) * de *( de 2020)</pattern>
+    <template>
+        <srai>CITA PARA EL <star index="2"/> DE <star index="3"/></srai>
+    </template>
+</category>
+
+
+<!--REGLA 1.2: Solicitud otro dia SI-->
+<category>
+    <pattern>SI</pattern>
+    <that>esta ocupado, quieres otro dia</that>
+    <template>Genial, dime que día te interesa</template>
+</category>
+
+<!--REGLA 1.3: Solicitud otro dia NO-->
+<category>
+    <pattern>NO</pattern>
+    <that>esta ocupado, quieres otro dia</that>
+    <template>Perfecto, avise si cambia de opinion</template>
+</category> 
+
+<!--REGLA 2: Horas libres genérico.
+Dado un día, comienza a estudiar desde la posicion 21
+hasta la posicion 8 de ese dia. Si el elemento es "null" lo incluye en lista_libres
+si el elemento estudiado es "ocupado" no se toma en cuenta
+Después decrementamos el contador para poder estudiar la siguiente hora del día
+y repetimos con lo de antes-->
+
+<category>
+    <pattern>horas libres de * a * del dia *</pattern>
+    <template>
+        <think>
+            <set var="contador"><star index="2"/></set>
+            <set name="lista_libres">.</set>
+            <set var="item_actual">
+                <srai>SELECTITEM <get var="contador"/> IN <map name="eventos"><star index="3"/></map></srai>
+            </set>
+            <condition var="contador">
+                <li><value><star index="1"/></value></li>
+                <li>
+                    <condition var="item_actual">
+                        <li value="ocupado"></li>
+                        <li>
+                            <!--contador_menos1 soluciona el problema de la posición 18 corresponde a las 17:00-->
+                            <set var="contador_menos1"><srai>MINUS <get var="contador"/> 1 </srai></set>
+                            <condition var = "contador_menos1">
+                                <li value="8"><set var="contador_menos1">08</set></li>
+                                <li value="9"><set var="contador_menos1">09</set></li>
+                            </condition>
+                            <set name="lista_libres"><srai>ADDITEM <get var="contador_menos1"/>:00 IN <get name="lista_libres"/></srai></set>
+                        </li>
+                    </condition>
+                    <set var="contador"><srai>MINUS <get var="contador"/> 1 </srai></set>
+                    <set var="item_actual">
+                        <srai>SELECTITEM <get var="contador"/> IN <map name="eventos"><star index="3"/></map></srai>
+                    </set>
+                    <loop/>
+                </li>
+            </condition>
+        </think>
+        En ese tramo tengo: <get name="lista_libres"/>
+    </template>
+</category>
+
+<!--REGLA 2.1: Horas libres tarde dd-mm-aa -->
+
+<category>
+   <pattern>horas libres tarde *</pattern>
+   <template>
+        <think>
+            <set var="inicio">13</set>
+            <set var="fin">21</set>
+        </think>
+        <srai>HORAS LIBRES DE <get var="inicio"/> A <get var="fin"/> DEL DIA <star/></srai>
+        Que hora quiere?
+ </template>
+</category>
+
+<!--REGLA 2.2: Horas libres mañana dd-mm-aa -->
+
+<category>
+   <pattern>horas libres mañana *</pattern>
+   <template>
+        <think>
+            <set var="inicio">8</set>
+            <set var="fin">13</set>
+        </think>
+        <srai>HORAS LIBRES DE <get var="inicio"/> A <get var="fin"/> DEL DIA <star/></srai>
+        Que hora quiere?
+ </template>
+</category>
+
+<!--REGLA 3: Registrar hora disponible, lo tiene claro-->
+<category>
+    <pattern>* (a) la+ *</pattern>
+    <that>Que hora quiere</that>
+    <template>
+        <think>
+        <set var="existe"><srai>FINDITEM <star index="2"/> IN <get name="lista_libres"/></srai></set>
+        </think>
+        <condition var="existe">
+            <li value="0">Esa hora no está libre. Prueba con otro dia</li>
+            <li>
+                <srai>MARK ocupado AT <star index="2"/> ON <get name="fecha_pedida"/></srai>
+                Perfecto, cita reservada para el <get name="fecha_pedida"/> a las <star index="2"/>
+            </li>
+        </condition>
+    </template>
+</category>
+
+<!--REGLA 3.1: Registrar hora disponible, le da igual-->
+<category>
+    <pattern>me da igual</pattern>
+    <that>Que hora quiere</that>
+    <template>
+        <think>
+        <set name="contador_igual">1</set>
+        <set name="item_actual">
+            <srai>SELECTITEM <get name="contador_igual"/> IN <get name="lista_libres"/></srai>
+        </set> 
+        </think>
+        Le viene bien a las <get name="item_actual"/>
+        <think><set name="topic">sabe</set></think>
+    </template>
+</category>
+
+<!--REGLA 3.2: Flexibilidad hora disponible, le da igual-->
+<category>
+    <pattern>no me importa</pattern>
+    <that>Que hora quiere</that>
+    <template><srai>ME DA IGUAL</srai></template>
+</category>
+
+<!--REGLA 3.3: Flexibilidad hora disponible, le da igual-->
+<category>
+    <pattern>la que sea</pattern>
+    <that>Que hora quiere</that>
+    <template><srai>ME DA IGUAL</srai></template>
+</category>
+
+<!--REGLA 3.1.1: Activar reglas de le da igual(3.1)-->
+<topic name="sabe">
+<category>
+    <pattern>*</pattern>
+    <that>Le viene bien a las *</that>
+    <template>
+        <set var="respuesta"><star/></set>
+        <get name="contador_igual"/>
+        <condition var="respuesta">    
+            <li value="si">
+                <srai>SI</srai> 
+            </li>
+            <li value="no">
+                <srai>NO</srai>       
+            </li>
+        </condition>
+    </template>
+</category>
+
+<!--REGLA 3.1.1.1: Si le parece bien la hora propuesta por el bot-->
+<category>
+    <pattern>si</pattern>
+    <template>
+        <srai>MARK ocupado AT <get name="item_actual"/> ON <get name="fecha_pedida"/></srai>
+        Perfecto, cita reservada para el <get name="fecha_pedida"/> a las <get name="item_actual"/>
+        <think><set name="topic">unknown</set></think><!--salir del topic-->
+    </template>
+</category>
+
+<!--REGLA 3.1.1.2: Si no le parece bien la hora propuesta por el bot.
+Le ofrece la siguiente hora disponible, y si no hay más le indica que proponga otra fecha-->
+<category>
+    <pattern>no</pattern>
+    <template>
+        <think>
+            <set name="contador_igual"><srai>PLUS <get name="contador_igual"/> 1 </srai></set>
+             <set name="item_actual">
+                <srai>SELECTITEM <get name="contador_igual"/> IN <get name="lista_libres"/></srai>
+            </set>
+        </think>
+        <condition name="item_actual">
+            <li value=".">
+                No hay mas horas, elija otro dia
+                <think><set name="topic">unknown</set></think>
+            </li>
+            <li>
+                Y a las <get name="item_actual"/>
+            </li>
+        </condition>
+    </template>
+</category>
+</topic>
+
+</aiml>
